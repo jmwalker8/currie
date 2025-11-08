@@ -8,6 +8,15 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Google API Scripts -->
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <!-- Our Modules -->
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="classroom-api.js"></script>
 </head>
 <body>
     <!-- Header -->
@@ -37,6 +46,17 @@
     <!-- Main Content -->
     <main class="main">
         <div class="container">
+
+            <!-- Loading Indicator -->
+            <div id="loadingIndicator" class="loading-overlay" style="display: none;">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>Loading assignments...</p>
+                </div>
+            </div>
+
+            <!-- Error Message -->
+            <div id="errorMessage" class="error-banner" style="display: none;"></div>
 
             <!-- Welcome Section -->
             <section class="welcome-section" id="welcomeSection">

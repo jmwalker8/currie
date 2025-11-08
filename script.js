@@ -5,77 +5,16 @@ let assignments = [];
 let currentFilter = 'all';
 let currentView = 'list';
 let selectedAssignment = null;
-
-// ===================================
-// Mock Data - Replace with Google Classroom API data
-// ===================================
-const mockAssignments = [
-    {
-        id: 1,
-        title: 'Math Homework - Chapter 5',
-        class: 'Mathematics',
-        description: 'Complete exercises 1-20 from Chapter 5. Show your work for all problems.',
-        dueDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000), // 1 day from now
-        priority: 'urgent',
-        completed: false,
-        link: '#'
-    },
-    {
-        id: 2,
-        title: 'Essay: Climate Change',
-        class: 'English Literature',
-        description: 'Write a 1000-word essay on the impact of climate change on modern literature.',
-        dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
-        priority: 'upcoming',
-        completed: false,
-        link: '#'
-    },
-    {
-        id: 3,
-        title: 'Science Lab Report',
-        class: 'Biology',
-        description: 'Submit lab report on photosynthesis experiment conducted last week.',
-        dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), // 5 days from now
-        priority: 'upcoming',
-        completed: false,
-        link: '#'
-    },
-    {
-        id: 4,
-        title: 'History Presentation',
-        class: 'World History',
-        description: 'Create a 10-minute presentation on the Industrial Revolution.',
-        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-        priority: 'normal',
-        completed: false,
-        link: '#'
-    },
-    {
-        id: 5,
-        title: 'Spanish Vocabulary Quiz',
-        class: 'Spanish II',
-        description: 'Study vocabulary words 1-50 from Unit 3.',
-        dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
-        priority: 'urgent',
-        completed: false,
-        link: '#'
-    },
-    {
-        id: 6,
-        title: 'Computer Science Project',
-        class: 'Introduction to Programming',
-        description: 'Create a simple calculator application using HTML, CSS, and JavaScript.',
-        dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days from now
-        priority: 'normal',
-        completed: false,
-        link: '#'
-    }
-];
+let isLoadingAssignments = false;
 
 // ===================================
 // Utility Functions
 // ===================================
 function formatDate(date) {
+    if (!date) {
+        return 'No due date';
+    }
+
     const now = new Date();
     const diffTime = date - now;
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -93,17 +32,25 @@ function formatDate(date) {
     }
 }
 
-function getPriorityFromDueDate(dueDate) {
-    const now = new Date();
-    const diffTime = dueDate - now;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+function showLoading(show = true) {
+    const loadingElement = document.getElementById('loadingIndicator');
+    if (loadingElement) {
+        loadingElement.style.display = show ? 'flex' : 'none';
+    }
+}
 
-    if (diffDays <= 2) {
-        return 'urgent';
-    } else if (diffDays <= 7) {
-        return 'upcoming';
+function showError(message) {
+    const errorElement = document.getElementById('errorMessage');
+    if (errorElement) {
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
+
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            errorElement.style.display = 'none';
+        }, 5000);
     } else {
-        return 'normal';
+        alert(message);
     }
 }
 
@@ -213,12 +160,34 @@ function renderAssignments() {
 // ===================================
 // Event Handlers
 // ===================================
-function toggleComplete(event, id) {
+async function toggleComplete(event, id) {
     event.stopPropagation();
     const assignment = assignments.find(a => a.id === id);
-    if (assignment) {
+    if (!assignment) return;
+
+    const wasCompleted = assignment.completed;
+
+    try {
+        // Optimistically update UI
         assignment.completed = !assignment.completed;
         renderAssignments();
+
+        // Make API call to turn in or reclaim assignment
+        if (assignment.completed) {
+            await classroomAPI.turnInAssignment(assignment.classId, assignment.id);
+        } else {
+            await classroomAPI.reclaimAssignment(assignment.classId, assignment.id);
+        }
+
+        console.log(`Assignment ${assignment.completed ? 'turned in' : 'reclaimed'} successfully`);
+    } catch (error) {
+        console.error('Error toggling assignment completion:', error);
+
+        // Revert on error
+        assignment.completed = wasCompleted;
+        renderAssignments();
+
+        showError('Failed to update assignment status. Please try again.');
     }
 }
 
@@ -247,17 +216,75 @@ function openInClassroom() {
     }
 }
 
-function showDashboard() {
-    document.getElementById('welcomeSection').style.display = 'none';
-    document.getElementById('dashboardSection').style.display = 'block';
+async function connectToGoogleClassroom() {
+    try {
+        showLoading(true);
+        console.log('Connecting to Google Classroom...');
 
-    // Load mock data
-    assignments = mockAssignments.map(a => ({
-        ...a,
-        priority: getPriorityFromDueDate(a.dueDate)
-    }));
+        // Initialize Google Auth if not already done
+        if (!googleAuth.gapiInitialized) {
+            await googleAuth.initClient();
+        }
 
-    renderAssignments();
+        // Sign in the user
+        await googleAuth.signIn();
+
+    } catch (error) {
+        console.error('Error connecting to Google Classroom:', error);
+        showError('Failed to connect to Google Classroom. Please check your credentials and try again.');
+        showLoading(false);
+    }
+}
+
+async function loadAssignments() {
+    try {
+        isLoadingAssignments = true;
+        showLoading(true);
+        console.log('Loading assignments from Google Classroom...');
+
+        // Fetch all assignments from Google Classroom
+        const fetchedAssignments = await classroomAPI.getAllAssignments();
+
+        // Update local state
+        assignments = fetchedAssignments;
+
+        // Show dashboard
+        document.getElementById('welcomeSection').style.display = 'none';
+        document.getElementById('dashboardSection').style.display = 'block';
+
+        // Render assignments
+        renderAssignments();
+
+        console.log('Assignments loaded successfully');
+    } catch (error) {
+        console.error('Error loading assignments:', error);
+        showError('Failed to load assignments. Please try again.');
+    } finally {
+        isLoadingAssignments = false;
+        showLoading(false);
+    }
+}
+
+async function refreshAssignments() {
+    if (isLoadingAssignments) return;
+
+    try {
+        isLoadingAssignments = true;
+        showLoading(true);
+        console.log('Refreshing assignments...');
+
+        const fetchedAssignments = await classroomAPI.refreshAssignments();
+        assignments = fetchedAssignments;
+
+        renderAssignments();
+        console.log('Assignments refreshed successfully');
+    } catch (error) {
+        console.error('Error refreshing assignments:', error);
+        showError('Failed to refresh assignments. Please try again.');
+    } finally {
+        isLoadingAssignments = false;
+        showLoading(false);
+    }
 }
 
 function toggleDarkMode() {
@@ -300,7 +327,7 @@ function setView(view) {
 // ===================================
 // Initialization
 // ===================================
-function init() {
+async function init() {
     // Check for saved dark mode preference
     const savedDarkMode = localStorage.getItem('darkMode') === 'true';
     if (savedDarkMode) {
@@ -309,10 +336,38 @@ function init() {
         icon.textContent = '☀️';
     }
 
+    // Set up Google Auth callbacks
+    googleAuth.onAuthSuccess = async () => {
+        console.log('Authentication successful, loading assignments...');
+        await loadAssignments();
+    };
+
+    googleAuth.onAuthError = (error) => {
+        console.error('Authentication failed:', error);
+        showError('Authentication failed. Please try again.');
+        showLoading(false);
+    };
+
+    googleAuth.onSignOut = () => {
+        console.log('User signed out');
+        assignments = [];
+        document.getElementById('welcomeSection').style.display = 'flex';
+        document.getElementById('dashboardSection').style.display = 'none';
+    };
+
+    // Initialize Google API Client
+    try {
+        await googleAuth.initClient();
+        console.log('Google API Client initialized');
+    } catch (error) {
+        console.error('Failed to initialize Google API:', error);
+        // Don't show error yet - wait until user tries to connect
+    }
+
     // Event Listeners
     document.getElementById('darkModeToggle').addEventListener('click', toggleDarkMode);
-    document.getElementById('connectGoogleBtn').addEventListener('click', showDashboard);
-    document.getElementById('getStartedBtn').addEventListener('click', showDashboard);
+    document.getElementById('connectGoogleBtn').addEventListener('click', connectToGoogleClassroom);
+    document.getElementById('getStartedBtn').addEventListener('click', connectToGoogleClassroom);
 
     // Filter tabs
     document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -351,19 +406,3 @@ if (document.readyState === 'loading') {
 } else {
     init();
 }
-
-// ===================================
-// Google Classroom API Integration (Placeholder)
-// ===================================
-// TODO: Replace mock data with actual Google Classroom API calls
-//
-// async function connectGoogleClassroom() {
-//     try {
-//         // Initialize Google OAuth
-//         // Fetch courses and assignments
-//         // Update assignments array
-//         // Render assignments
-//     } catch (error) {
-//         console.error('Error connecting to Google Classroom:', error);
-//     }
-// }
