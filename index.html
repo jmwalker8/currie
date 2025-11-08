@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClassroomFocus - Your Assignments, Simplified</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <svg class="logo-icon" width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="32" height="32" rx="8" fill="currentColor"/>
+                        <path d="M16 8L24 12V20L16 24L8 20V12L16 8Z" fill="white"/>
+                    </svg>
+                    <h1>ClassroomFocus</h1>
+                </div>
+                <nav class="nav">
+                    <button class="btn-secondary" id="darkModeToggle" aria-label="Toggle dark mode">
+                        <span class="icon">🌙</span>
+                    </button>
+                    <button class="btn-primary" id="connectGoogleBtn">
+                        <span class="icon">🔗</span>
+                        Connect Google Classroom
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+
+            <!-- Welcome Section -->
+            <section class="welcome-section" id="welcomeSection">
+                <div class="welcome-card">
+                    <h2>Welcome to ClassroomFocus</h2>
+                    <p>Your personalized assignment tracker designed to help you stay organized and focused.</p>
+                    <button class="btn-primary btn-large" id="getStartedBtn">
+                        Get Started
+                    </button>
+                </div>
+            </section>
+
+            <!-- Dashboard Section (hidden until connected) -->
+            <section class="dashboard" id="dashboardSection" style="display: none;">
+
+                <!-- Stats Overview -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon urgent">⚠️</div>
+                        <div class="stat-content">
+                            <h3 class="stat-number" id="urgentCount">0</h3>
+                            <p class="stat-label">Due Soon</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon upcoming">📅</div>
+                        <div class="stat-content">
+                            <h3 class="stat-number" id="upcomingCount">0</h3>
+                            <p class="stat-label">This Week</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon completed">✓</div>
+                        <div class="stat-content">
+                            <h3 class="stat-number" id="completedCount">0</h3>
+                            <p class="stat-label">Completed</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon total">📚</div>
+                        <div class="stat-content">
+                            <h3 class="stat-number" id="totalCount">0</h3>
+                            <p class="stat-label">Total Active</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter Tabs -->
+                <div class="filter-tabs">
+                    <button class="tab-btn active" data-filter="all">All Assignments</button>
+                    <button class="tab-btn" data-filter="urgent">Due Soon</button>
+                    <button class="tab-btn" data-filter="upcoming">This Week</button>
+                    <button class="tab-btn" data-filter="completed">Completed</button>
+                </div>
+
+                <!-- Assignments List -->
+                <div class="assignments-container">
+                    <div class="assignments-header">
+                        <h2>Your Assignments</h2>
+                        <div class="view-toggle">
+                            <button class="view-btn active" data-view="list" aria-label="List view">
+                                <span class="icon">☰</span>
+                            </button>
+                            <button class="view-btn" data-view="calendar" aria-label="Calendar view">
+                                <span class="icon">📅</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="assignmentsList" class="assignments-list">
+                        <!-- Assignments will be dynamically inserted here -->
+                    </div>
+
+                    <div class="empty-state" id="emptyState">
+                        <div class="empty-icon">🎉</div>
+                        <h3>All caught up!</h3>
+                        <p>You don't have any assignments due right now.</p>
+                    </div>
+                </div>
+
+            </section>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 ClassroomFocus. Designed for focus and productivity.</p>
+        </div>
+    </footer>
+
+    <!-- Assignment Detail Modal -->
+    <div class="modal" id="assignmentModal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Assignment Details</h2>
+                <button class="modal-close" aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="assignment-detail">
+                    <div class="detail-section">
+                        <label>Class</label>
+                        <p id="modalClass"></p>
+                    </div>
+                    <div class="detail-section">
+                        <label>Due Date</label>
+                        <p id="modalDueDate"></p>
+                    </div>
+                    <div class="detail-section">
+                        <label>Description</label>
+                        <p id="modalDescription"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="modalCancelBtn">Close</button>
+                <button class="btn-primary" id="modalOpenBtn">Open in Classroom</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
